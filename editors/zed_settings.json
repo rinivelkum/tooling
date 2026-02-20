@@ -1,0 +1,86 @@
+// Zed settings
+//
+// For information on how to configure Zed, see the Zed
+// documentation: https://zed.dev/docs/configuring-zed
+//
+// To see all of Zed's default settings without changing your
+// custom settings, run `zed: open default settings` from the
+// command palette (cmd-shift-p / ctrl-shift-p)
+{
+  "ui_font_size": 13,
+  "buffer_font_size": 13,
+  "theme": {
+    "mode": "system",
+    "light": "Xcode Default Light",
+    "dark": "Xcode Default Dark"
+  },
+  "telemetry": {
+    "metrics": false,
+    "diagnostics": false
+  },
+  "gutter": {
+    "line_numbers": false,
+    "code_actions": false,
+    "folds": false,
+    "runnables": false
+  },
+  "base_keymap": "VSCode",
+  "assistant": {
+    "enabled": false,
+    "version": "2"
+  },
+  "tab_bar": {
+    "show": false
+  },
+  "scrollbar": {
+    "show": "never"
+  },
+  "git": {
+    "git_gutter": "hide"
+  },
+  "indent_guides": {
+    "enabled": false
+  },
+  "scroll_beyond_last_line": "off",
+  "current_line_highlight": "none",
+  "git_panel": {
+    "dock": "right"
+  },
+  "format_on_save": "on",
+  "ui_font_family": "SF Compact Display",
+  "buffer_font_family": "SF Mono",
+  "buffer_line_height": "standard",
+  "selection_highlight": false,
+  "features": {
+    "copilot": false,
+    "edit_prediction_provider": "none"
+  },
+  "vim_mode": false,
+  "terminal": {
+    "button": false
+  },
+  "chat_panel": {
+    "button": "never"
+  },
+  "collaboration_panel": {
+    "button": false
+  },
+  "notification_panel": {
+    "button": false
+  },
+  "outline_panel": {
+    "button": false
+  },
+  "project_panel": {
+    "indent_guides": {
+      "show": "never"
+    },
+    "indent_size": 10,
+    "entry_spacing": "standard"
+  },
+  "diagnostics": {
+    "inline": {
+      "enabled": true
+    }
+  }
+}
