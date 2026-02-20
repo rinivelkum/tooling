@@ -1,15 +1,12 @@
 return {
   {
-    "ellisonleao/gruvbox.nvim",
+    "sainnhe/gruvbox-material",
     lazy = false,
     priority = 1000,
-    opts = {
-      contrast = "soft",
-    },
-    config = function(_, opts)
+    config = function()
       vim.o.background = "light"
-      require("gruvbox").setup(opts)
-      vim.cmd.colorscheme("gruvbox")
+      vim.g.gruvbox_material_background = "medium"
+      vim.cmd.colorscheme("gruvbox-material")
     end,
   },
 }
