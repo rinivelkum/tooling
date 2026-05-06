@@ -38,7 +38,7 @@ precmd() { vcs_info }
 zstyle ':vcs_info:git:*' formats ' %F{cyan}(%b)%f'
 zstyle ':vcs_info:git:*' actionformats ' %F{yellow}(%b|%a)%f'
 setopt PROMPT_SUBST
-PROMPT='%F{green}%n%f:%F{blue}%~%f${vcs_info_msg_0_} %F{magenta}❯%f '
+PROMPT='%F{8}[%*]%f %F{green}%n%f:%F{blue}%~%f${vcs_info_msg_0_} %F{magenta}❯%f '
 
 # ---------------------------------------------------------------------------
 #  Git Aliases — everyday shortcuts
@@ -397,3 +397,4 @@ fi
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+export PATH="$HOME/.local/bin:$PATH"
