@@ -1,0 +1,16 @@
+# Gruvbox Material Light colors for ripgrep matches.
+# `none` resets each style before reapplying so the defaults don't bleed through.
+
+--colors=match:none
+--colors=match:fg:0xb4,0x71,0x09
+--colors=match:style:bold
+
+--colors=path:none
+--colors=path:fg:0x45,0x70,0x7a
+--colors=path:style:bold
+
+--colors=line:none
+--colors=line:fg:0x7c,0x6f,0x64
+
+--colors=column:none
+--colors=column:fg:0x7c,0x6f,0x64

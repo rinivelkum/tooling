@@ -31,14 +31,104 @@ zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'  # case-insensitive
 zstyle ':completion:*' menu select                     # arrow-key menu
 
 # ---------------------------------------------------------------------------
-#  Prompt — Git-aware (lightweight, no plugins needed)
+#  Zoxide — `z <partial>` jumps to frecent dirs, `zi` for fuzzy picker
 # ---------------------------------------------------------------------------
-autoload -Uz vcs_info
-precmd() { vcs_info }
-zstyle ':vcs_info:git:*' formats ' %F{cyan}(%b)%f'
-zstyle ':vcs_info:git:*' actionformats ' %F{yellow}(%b|%a)%f'
+if command -v zoxide &>/dev/null; then
+  eval "$(zoxide init zsh)"
+fi
+
+# ---------------------------------------------------------------------------
+#  Prompt — Git-aware, context-rich (lightweight, no plugins needed)
+# ---------------------------------------------------------------------------
+autoload -Uz vcs_info add-zsh-hook
+zmodload zsh/datetime
+
+# vcs_info — branch + staged/unstaged + untracked + ahead/behind
+zstyle ':vcs_info:*' enable git
+zstyle ':vcs_info:git:*' check-for-changes true
+zstyle ':vcs_info:git:*' stagedstr   '%F{green}●%f'
+zstyle ':vcs_info:git:*' unstagedstr '%F{yellow}✚%f'
+zstyle ':vcs_info:git:*' formats       ' %F{cyan}(%b%c%u%m)%f'
+zstyle ':vcs_info:git:*' actionformats ' %F{yellow}(%b|%a%c%u%m)%f'
+
++vi-git-untracked() {
+  if git rev-parse --is-inside-work-tree &>/dev/null \
+     && git status --porcelain 2>/dev/null | grep -q '^??'; then
+    hook_com[misc]+='%F{red}…%f'
+  fi
+}
++vi-git-ahead-behind() {
+  local ahead behind
+  ahead=$(git rev-list --count @{u}..HEAD 2>/dev/null)
+  behind=$(git rev-list --count HEAD..@{u} 2>/dev/null)
+  (( ahead  > 0 )) && hook_com[misc]+=" %F{green}↑${ahead}%f"
+  (( behind > 0 )) && hook_com[misc]+=" %F{red}↓${behind}%f"
+}
+zstyle ':vcs_info:git*+set-message:*' hooks git-untracked git-ahead-behind
+
+# Command duration — exposes $_cmd_duration when last command took ≥2s
+_cmd_timer_start() { _cmd_timer=$EPOCHREALTIME }
+_cmd_timer_stop() {
+  if [[ -n $_cmd_timer ]]; then
+    local elapsed=$(( EPOCHREALTIME - _cmd_timer ))
+    unset _cmd_timer
+    if (( elapsed >= 60 )); then
+      _cmd_duration=$(printf '%dm%ds' $(( elapsed / 60 )) $(( elapsed % 60 )))
+    elif (( elapsed >= 2 )); then
+      _cmd_duration=$(printf '%.1fs' $elapsed)
+    else
+      _cmd_duration=''
+    fi
+  else
+    _cmd_duration=''
+  fi
+}
+add-zsh-hook preexec _cmd_timer_start
+add-zsh-hook precmd  _cmd_timer_stop
+
+# Context segments — each prints empty when not relevant
+_ssh_segment()  { [[ -n $SSH_CONNECTION || -n $SSH_TTY ]] && echo "%F{red}[ssh]%f " }
+_venv_segment() { [[ -n $VIRTUAL_ENV ]] && echo "%F{yellow}(${VIRTUAL_ENV:t})%f " }
+_node_segment() {
+  local dir=$PWD
+  while [[ $dir != / && -n $dir ]]; do
+    if [[ -f $dir/package.json ]]; then
+      command -v node &>/dev/null && echo "%F{green}⬢ $(node --version 2>/dev/null)%f "
+      return
+    fi
+    dir=${dir:h}
+  done
+}
+_kube_segment() {
+  [[ -d k8s || -d kubernetes || -f Chart.yaml || -f skaffold.yaml || -f kustomization.yaml ]] || return
+  command -v kubectl &>/dev/null || return
+  local ctx
+  ctx=$(kubectl config current-context 2>/dev/null) || return
+  [[ -n $ctx ]] && echo "%F{magenta}⎈ ${ctx}%f "
+}
+_aws_segment() {
+  emulate -L zsh
+  setopt null_glob
+  local tfs=(*.tf)
+  if (( ${#tfs} > 0 )) || [[ -d .terraform ]]; then
+    [[ -n $AWS_PROFILE ]] && echo "%F{208}☁ ${AWS_PROFILE}%f "
+  fi
+}
+
+# Refresh vcs_info + insert a blank line before each prompt
+_prompt_precmd() { vcs_info; print '' }
+add-zsh-hook precmd _prompt_precmd
+
 setopt PROMPT_SUBST
-PROMPT='%F{8}[%*]%f %F{green}%n%f:%F{blue}%~%f${vcs_info_msg_0_} %F{magenta}❯%f '
+
+# Two-line prompt
+#   line 1: [ssh] ✗exit ⚙jobs (venv) ⬢node ⎈kube ☁aws  user:path (git ●✚…↑↓)
+#   line 2: ❯
+PROMPT='$(_ssh_segment)%(?..%F{red}✗ %?%f )%(1j.%F{yellow}⚙ %j%f .)$(_venv_segment)$(_node_segment)$(_kube_segment)$(_aws_segment)%(!.%F{red}.%F{green})%n%f:%F{blue}%~%f${vcs_info_msg_0_}
+%F{magenta}❯%f '
+
+# Right prompt — last command duration + clock
+RPROMPT='%F{8}${_cmd_duration:+${_cmd_duration} }[%*]%f'
 
 # ---------------------------------------------------------------------------
 #  Git Aliases — everyday shortcuts
@@ -190,8 +280,13 @@ gsync() {
 alias ..="cd .."
 alias ...="cd ../.."
 alias ....="cd ../../.."
-# Cross-platform ls coloring (GNU vs BSD/macOS)
-if ls --color=auto / &>/dev/null; then
+# Prefer eza when available (git status, icons, tree), else cross-platform ls
+if command -v eza &>/dev/null; then
+  alias ll="eza -lah --git --group-directories-first --icons=auto"
+  alias la="eza -a --group-directories-first --icons=auto"
+  alias l="eza --icons=auto"
+  alias lt="eza --tree --level=2 --git-ignore --icons=auto"
+elif ls --color=auto / &>/dev/null; then
   alias ll="ls -lAhF --color=auto"
   alias la="ls -A --color=auto"
   alias l="ls -CF --color=auto"
@@ -311,9 +406,64 @@ if command -v gh &>/dev/null; then
 fi
 
 # ---------------------------------------------------------------------------
+#  Theme — Gruvbox Material, follows macOS appearance
+# ---------------------------------------------------------------------------
+# Detected on shell startup; run `theme auto` in an existing shell to re-sync
+# after toggling macOS appearance, or `theme dark`/`theme light` to override.
+
+_theme_dark() {
+  export FZF_DEFAULT_OPTS="
+    --color=bg+:#32302f,bg:#282828,spinner:#a9b665,hl:#7daea3
+    --color=fg:#d4be98,header:#7daea3,info:#d8a657,pointer:#ea6962
+    --color=marker:#ea6962,fg+:#ddc7a1,prompt:#d8a657,hl+:#7daea3
+    --color=border:#45403d
+  "
+  export BAT_THEME="gruvbox-dark"
+  export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/ripgreprc-dark"
+}
+
+_theme_light() {
+  export FZF_DEFAULT_OPTS="
+    --color=bg+:#ebdbb2,bg:#fbf1c7,spinner:#6c782e,hl:#45707a
+    --color=fg:#654735,header:#45707a,info:#b47109,pointer:#c14a4a
+    --color=marker:#c14a4a,fg+:#4f3829,prompt:#b47109,hl+:#45707a
+    --color=border:#d5c4a1
+  "
+  export BAT_THEME="gruvbox-light"
+  export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/ripgreprc-light"
+}
+
+# `defaults` returns "Dark" when dark mode is active; the key is unset (and the
+# command exits non-zero) under light mode, so absence == light.
+_theme_macos_is_dark() {
+  [[ "$(defaults read -g AppleInterfaceStyle 2>/dev/null)" == "Dark" ]]
+}
+
+theme() {
+  case "${1:-auto}" in
+    dark)  _theme_dark ;;
+    light) _theme_light ;;
+    auto)  _theme_macos_is_dark && _theme_dark || _theme_light ;;
+    *)     echo "usage: theme [dark|light|auto]" >&2; return 1 ;;
+  esac
+}
+
+theme auto
+
+# ---------------------------------------------------------------------------
 #  FZF Integration (if installed) — supercharges git workflows
 # ---------------------------------------------------------------------------
 if command -v fzf &>/dev/null; then
+  # Ctrl-R history, Ctrl-T file picker, Alt-C dir jump, plus completion
+  eval "$(fzf --zsh)"
+
+  # Use fd for file/dir listing if available — respects .gitignore, faster than find
+  if command -v fd &>/dev/null; then
+    export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+    export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
+  fi
+
   # Fuzzy checkout branch
   fbr() {
     local branch
@@ -388,6 +538,16 @@ if command -v rg &>/dev/null; then
         fzf --preview 'bat --color=always {} 2>/dev/null || head -60 {}'
     }
   fi
+fi
+
+# ---------------------------------------------------------------------------
+#  Zsh plugins — autosuggestions then syntax highlighting (highlighting MUST be last)
+# ---------------------------------------------------------------------------
+if [ -f /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
+  source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+fi
+if [ -f /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
+  source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 fi
 
 # ---------------------------------------------------------------------------
