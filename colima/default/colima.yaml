@@ -1,0 +1,61 @@
+# Default Colima profile for the local Docker runtime.
+cpu: 10
+disk: 128
+memory: 20
+arch: aarch64
+runtime: docker
+modelRunner: docker
+hostname: colima
+
+kubernetes:
+  enabled: false
+  version: v1.35.0+k3s1
+  k3sArgs:
+    - --disable=traefik
+  port: 0
+
+autoActivate: true
+
+network:
+  address: false
+  mode: shared
+  interface: en0
+  preferredRoute: false
+  dns:
+    - 1.1.1.1
+    - 8.8.8.8
+  dnsHosts: {}
+  hostAddresses: false
+  gatewayAddress: 192.168.5.2
+
+forwardAgent: true
+
+docker:
+  features:
+    buildkit: true
+  log-driver: local
+  log-opts:
+    max-file: "3"
+    max-size: 10m
+  max-concurrent-downloads: 10
+
+vmType: vz
+portForwarder: ssh
+rosetta: true
+binfmt: false
+nestedVirtualization: false
+mountType: virtiofs
+mountInotify: true
+cpuType: ""
+
+provision: null
+sshConfig: true
+sshPort: 0
+
+mounts:
+  - location: "~"
+    writable: true
+
+diskImage: ""
+rootDisk: 20
+env: {}

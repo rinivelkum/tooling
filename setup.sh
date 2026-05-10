@@ -49,8 +49,18 @@ link "$REPO_ROOT/terminal/ripgreprc-dark" "$HOME/.config/ripgrep/ripgreprc-dark"
 link "$REPO_ROOT/terminal/ripgreprc-light" "$HOME/.config/ripgrep/ripgreprc-light"
 echo
 
+echo "containers:"
+link "$REPO_ROOT/colima/default/colima.yaml" "$HOME/.colima/default/colima.yaml"
+echo
+
 if command -v brew &>/dev/null; then
   echo "brew packages:"
+  # Colima-backed Docker CLI setup.
+  brew_install colima
+  brew_install docker
+  brew_install docker-buildx
+  brew_install docker-compose
+
   # CLI tools referenced by .zshrc — installing pulls in fzf previews, eza/ls,
   # zoxide jumps, fd-backed fzf, and delta-rendered git diffs.
   brew_install bat
