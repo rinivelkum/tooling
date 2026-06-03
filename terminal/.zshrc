@@ -8,7 +8,15 @@
 eval "$(/opt/homebrew/bin/brew shellenv zsh)"
 export EDITOR="nvim"
 export VISUAL="$EDITOR"
-export PAGER="less -R"
+export PAGER="less"
+# $LESS is read by the `less` binary on EVERY invocation (git, man, etc.), so
+# these options apply everywhere — not just when you type `less` interactively.
+#   -R  pass through color escape codes
+#   -F  quit immediately if output fits one screen (git's default behavior)
+#   --mouse --wheel-lines=1  smooth one-line-per-notch mouse-wheel scrolling
+# Note: git defaults to LESS=FRX; we drop X (--no-init) because it conflicts
+# with mouse tracking.
+export LESS="-R -F --mouse --wheel-lines=1"
 export LANG="en_US.UTF-8"
 
 # ---------------------------------------------------------------------------
@@ -303,8 +311,8 @@ alias rm="rm -iv"
 alias df="df -h"
 alias du="du -sh"
 alias grep="grep --color=auto"
-# Mouse-wheel scrolling in less, one line per notch (great for infinite-scroll mice)
-alias less="less -R --mouse --wheel-lines=1"
+# less options (mouse-wheel scroll + color) are set globally via $LESS in the
+# PATH & Environment block above, so they apply to git, man, and every pager.
 alias ports="lsof -i -P -n | grep LISTEN"
 alias myip="curl -s ifconfig.me"
 alias weather="curl -s wttr.in/?format=3"
