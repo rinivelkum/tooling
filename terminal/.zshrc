@@ -303,6 +303,8 @@ alias rm="rm -iv"
 alias df="df -h"
 alias du="du -sh"
 alias grep="grep --color=auto"
+# Mouse-wheel scrolling in less, one line per notch (great for infinite-scroll mice)
+alias less="less -R --mouse --wheel-lines=1"
 alias ports="lsof -i -P -n | grep LISTEN"
 alias myip="curl -s ifconfig.me"
 alias weather="curl -s wttr.in/?format=3"
