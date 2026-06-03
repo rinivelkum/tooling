@@ -185,7 +185,7 @@ alias ghprv="gh pr view --web"
 alias ghprc="gh pr checkout"
 alias ghprm="gh pr merge --squash --delete-branch"
 alias ghprs="gh pr status"
-alias ghprd="gh pr diff"
+alias ghprd="gh pr diff | delta"
 alias ghprr="gh pr review"
 
 alias ghi="gh issue create"
