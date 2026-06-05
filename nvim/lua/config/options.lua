@@ -37,4 +37,5 @@ vim.g.netrw_keepdir = 0
 vim.g.netrw_liststyle = 3
 vim.g.netrw_winsize = 24
 vim.g.netrw_hide = 0
+vim.g.netrw_mousemaps = 0
 vim.g.netrw_list_hide = ignore.netrw_hide
