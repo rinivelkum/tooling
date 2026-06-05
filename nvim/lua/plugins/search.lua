@@ -43,16 +43,13 @@ return {
         },
         pickers = {
           find_files = {
-            previewer = false,
             find_command = ignore.rg_with_ignores({
               "rg",
               "--files",
               "--hidden",
             }),
           },
-          live_grep = { previewer = false },
           buffers = {
-            previewer = false,
             sort_lastused = true,
           },
         },
