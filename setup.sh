@@ -47,6 +47,7 @@ link "$REPO_ROOT/terminal/.zshrc" "$HOME/.zshrc"
 link "$REPO_ROOT/terminal/ghostty_config" "$HOME/.config/ghostty/config"
 link "$REPO_ROOT/terminal/ripgreprc-dark" "$HOME/.config/ripgrep/ripgreprc-dark"
 link "$REPO_ROOT/terminal/ripgreprc-light" "$HOME/.config/ripgrep/ripgreprc-light"
+link "$REPO_ROOT/terminal/lazygit_config.yml" "$HOME/Library/Application Support/lazygit/config.yml"
 echo
 
 echo "containers:"
@@ -68,6 +69,7 @@ if command -v brew &>/dev/null; then
   brew_install fd
   brew_install zoxide
   brew_install git-delta
+  brew_install lazygit
   brew_install zsh-autosuggestions
   brew_install zsh-syntax-highlighting
   echo

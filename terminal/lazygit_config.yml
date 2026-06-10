@@ -1,0 +1,13 @@
+# lazygit configuration — https://github.com/jesseduffield/lazygit
+#
+# Render diffs with delta. lazygit does NOT inherit git's `core.pager`, so delta
+# has to be wired in here explicitly. delta still reads its own settings
+# (line-numbers, navigate, theme, ...) from the `[delta]` section of your git
+# config, so this only points lazygit at delta as the diff pager.
+#
+# --paging=never is required: lazygit scrolls the diff panel itself, so delta
+# must not pipe its output through `less` inside it (that would garble the view).
+git:
+  pagers:
+    - colorArg: always
+      pager: delta --paging=never
