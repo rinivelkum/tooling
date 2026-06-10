@@ -5,7 +5,14 @@
 # ---------------------------------------------------------------------------
 #  PATH & Environment
 # ---------------------------------------------------------------------------
-eval "$(/opt/homebrew/bin/brew shellenv zsh)"
+# Dedupe path/fpath — nested shells re-run this file and would otherwise
+# accumulate duplicate entries (nvm bin, ~/.local/bin, ...).
+typeset -gU path fpath
+
+# ~/.zprofile already ran brew shellenv (every macOS terminal tab is a login
+# shell, and HOMEBREW_PREFIX/FPATH are exported so nested shells inherit them
+# too). Re-run it only when genuinely missing — saves ~35ms per shell.
+[[ -n $HOMEBREW_PREFIX ]] || eval "$(/opt/homebrew/bin/brew shellenv zsh)"
 export EDITOR="nvim"
 export VISUAL="$EDITOR"
 export PAGER="less"
@@ -27,9 +34,8 @@ HISTSIZE=50000
 SAVEHIST=50000
 setopt HIST_IGNORE_ALL_DUPS   # no duplicate entries
 setopt HIST_REDUCE_BLANKS     # trim superfluous blanks
-setopt SHARE_HISTORY          # share history across sessions
-setopt APPEND_HISTORY         # append instead of overwrite
-setopt INC_APPEND_HISTORY     # write immediately, not on exit
+setopt SHARE_HISTORY          # share across sessions; implies incremental
+                              # write + import (APPEND/INC_APPEND not needed)
 
 # ---------------------------------------------------------------------------
 #  Completion
@@ -81,6 +87,7 @@ fi
 # ---------------------------------------------------------------------------
 autoload -Uz vcs_info add-zsh-hook
 zmodload zsh/datetime
+zmodload -F zsh/stat b:zstat   # zstat builtin — mtime checks without spawning `stat`
 
 # vcs_info — branch + staged/unstaged + untracked + ahead/behind
 zstyle ':vcs_info:*' enable git
@@ -97,9 +104,9 @@ zstyle ':vcs_info:git:*' actionformats ' %F{yellow}(%b|%a%c%u%m)%f'
   fi
 }
 +vi-git-ahead-behind() {
+  # --left-right --count gives "ahead<TAB>behind" in a single git call
   local ahead behind
-  ahead=$(git rev-list --count @{u}..HEAD 2>/dev/null)
-  behind=$(git rev-list --count HEAD..@{u} 2>/dev/null)
+  read -r ahead behind <<<"$(git rev-list --left-right --count 'HEAD...@{u}' 2>/dev/null)"
   (( ahead  > 0 )) && hook_com[misc]+=" %F{green}↑${ahead}%f"
   (( behind > 0 )) && hook_com[misc]+=" %F{red}↓${behind}%f"
 }
@@ -125,32 +132,65 @@ _cmd_timer_stop() {
 add-zsh-hook preexec _cmd_timer_start
 add-zsh-hook precmd  _cmd_timer_stop
 
-# Context segments — each prints empty when not relevant
-_ssh_segment()  { [[ -n $SSH_CONNECTION || -n $SSH_TTY ]] && echo "%F{red}[ssh]%f " }
-_venv_segment() { [[ -n $VIRTUAL_ENV ]] && echo "%F{yellow}(${VIRTUAL_ENV:t})%f " }
+# Context segments — computed once per command in precmd, exposed as plain
+# variables. Embedding these as $(...) in PROMPT would fork a subshell per
+# segment on EVERY redraw (including the async reset-prompt, so everything
+# twice), and a forked segment can't cache anything because its variables
+# die with the subshell. Each setter leaves its variable empty when the
+# segment isn't relevant.
+
+# ssh-ness can't change mid-session — compute once at startup
+typeset -g _ssh_seg=''
+[[ -n $SSH_CONNECTION || -n $SSH_TTY ]] && _ssh_seg='%F{red}[ssh]%f '
+
+_venv_segment() {
+  _venv_seg=''
+  [[ -n $VIRTUAL_ENV ]] && _venv_seg="%F{yellow}(${VIRTUAL_ENV:t})%f "
+}
+
+# `node --version` costs ~20ms, so cache it per binary path — the version
+# only changes when PATH swaps in a different node (e.g. nvm use)
 _node_segment() {
+  _node_seg=''
   local dir=$PWD
   while [[ $dir != / && -n $dir ]]; do
     if [[ -f $dir/package.json ]]; then
-      command -v node &>/dev/null && echo "%F{green}⬢ $(node --version 2>/dev/null)%f "
+      local bin=${commands[node]}
+      [[ -n $bin ]] || return
+      if [[ $bin != $_node_seg_bin ]]; then
+        typeset -g _node_seg_bin=$bin
+        typeset -g _node_seg_ver=$("$bin" --version 2>/dev/null)
+      fi
+      [[ -n $_node_seg_ver ]] && _node_seg="%F{green}⬢ ${_node_seg_ver}%f "
       return
     fi
     dir=${dir:h}
   done
 }
+
+# kubectl re-reads and merges kubeconfigs on every call, so cache the context
+# and re-query only when a kubeconfig file's mtime changes
 _kube_segment() {
+  _kube_seg=''
   [[ -d k8s || -d kubernetes || -f Chart.yaml || -f skaffold.yaml || -f kustomization.yaml ]] || return
   command -v kubectl &>/dev/null || return
-  local ctx
-  ctx=$(kubectl config current-context 2>/dev/null) || return
-  [[ -n $ctx ]] && echo "%F{magenta}⎈ ${ctx}%f "
+  local f sig=''
+  local -a mt
+  for f in ${(s.:.)${KUBECONFIG:-$HOME/.kube/config}}; do
+    zstat -A mt +mtime -- "$f" 2>/dev/null && sig+="$f:${mt[1]};"
+  done
+  if [[ $sig != $_kube_cfg_sig ]]; then
+    typeset -g _kube_cfg_sig=$sig
+    typeset -g _kube_ctx=$(kubectl config current-context 2>/dev/null)
+  fi
+  [[ -n $_kube_ctx ]] && _kube_seg="%F{magenta}⎈ ${_kube_ctx}%f "
 }
+
 _aws_segment() {
-  emulate -L zsh
-  setopt null_glob
-  local tfs=(*.tf)
-  if (( ${#tfs} > 0 )) || [[ -d .terraform ]]; then
-    [[ -n $AWS_PROFILE ]] && echo "%F{208}☁ ${AWS_PROFILE}%f "
+  _aws_seg=''
+  local tfs=( *.tf(N) )
+  if (( ${#tfs} )) || [[ -d .terraform ]]; then
+    [[ -n $AWS_PROFILE ]] && _aws_seg="%F{208}☁ ${AWS_PROFILE}%f "
   fi
 }
 
@@ -189,8 +229,21 @@ _vcs_async_done() {
   zle reset-prompt                      # redraw the prompt with fresh git info
 }
 
-# Kick off the async refresh + insert a blank line before each prompt.
-_prompt_precmd() { _vcs_async_start; print '' }
+# A new directory may be a different repo — blank the git segment instead of
+# showing the previous repo's branch while the async worker catches up.
+_vcs_chpwd() { vcs_info_msg_0_='' }
+add-zsh-hook chpwd _vcs_chpwd
+
+# Refresh the context segments, kick off the async git refresh, and insert a
+# blank line before each prompt.
+_prompt_precmd() {
+  _venv_segment
+  _node_segment
+  _kube_segment
+  _aws_segment
+  _vcs_async_start
+  print ''
+}
 add-zsh-hook precmd _prompt_precmd
 
 setopt PROMPT_SUBST
@@ -198,7 +251,7 @@ setopt PROMPT_SUBST
 # Two-line prompt
 #   line 1: [ssh] ✗exit ⚙jobs (venv) ⬢node ⎈kube ☁aws  user:path (git ●✚…↑↓)
 #   line 2: ❯
-PROMPT='$(_ssh_segment)%(?..%F{red}✗ %?%f )%(1j.%F{yellow}⚙ %j%f .)$(_venv_segment)$(_node_segment)$(_kube_segment)$(_aws_segment)%(!.%F{red}.%F{green})%n%f:%F{blue}%~%f${vcs_info_msg_0_}
+PROMPT='${_ssh_seg}%(?..%F{red}✗ %?%f )%(1j.%F{yellow}⚙ %j%f .)${_venv_seg}${_node_seg}${_kube_seg}${_aws_seg}%(!.%F{red}.%F{green})%n%f:%F{blue}%~%f${vcs_info_msg_0_}
 %F{magenta}❯%f '
 
 # Right prompt — last command duration + clock
@@ -583,26 +636,29 @@ if command -v rg &>/dev/null; then
   alias rgfa="rg --files --hidden --no-ignore | rg"  # find all files by name
 
   # --- Functions ---
+  # (`command rg` everywhere: zsh expands aliases at function-definition time,
+  # so a bare `rg` here would pick up the alias and double the --smart-case)
+
   # Search in a specific file type: rgin py "pattern"
   rgin() {
-    rg --smart-case -t "$1" -- "${@:2}"
+    command rg --smart-case -t "$1" -- "${@:2}"
   }
 
   # Search and replace (preview): rgsub "pattern" "replacement" [path]
   rgsub() {
-    rg --smart-case -l "$1" ${3:-.} | xargs sed -n "s/$1/$2/gp"
+    command rg --smart-case -l --null -- "$1" "${3:-.}" | xargs -0 sed -n "s/$1/$2/gp"
   }
 
   # Search with context: rgctx 3 "pattern" (shows N lines around matches)
   rgctx() {
-    rg --smart-case -C "$1" -- "${@:2}"
+    command rg --smart-case -C "$1" -- "${@:2}"
   }
 
   # FZF-powered interactive ripgrep (if fzf available)
   if command -v fzf &>/dev/null; then
     # Live grep: type and results update in real time
     rgfzf() {
-      rg --smart-case --color=always --line-number -- '' "${1:-.}" |
+      command rg --smart-case --color=always --line-number -- '' "${1:-.}" |
         fzf --ansi --delimiter : \
             --preview 'bat --color=always --highlight-line {2} {1} 2>/dev/null || head -n $((${2:-1}+20)) {1}' \
             --preview-window 'up,60%,+{2}-10'
@@ -610,7 +666,7 @@ if command -v rg &>/dev/null; then
 
     # Live file finder with preview
     rgff() {
-      rg --files "${1:-.}" |
+      command rg --files "${1:-.}" |
         fzf --preview 'bat --color=always {} 2>/dev/null || head -60 {}'
     }
   fi
@@ -664,4 +720,6 @@ nvm() {
   nvm "$@"
 }
 
-export PATH="$HOME/.local/bin:$PATH"
+# Array form, not `export PATH="...:$PATH"` — typeset -U only dedupes
+# assignments to the path array, not ones through the tied PATH scalar.
+path=("$HOME/.local/bin" $path)
