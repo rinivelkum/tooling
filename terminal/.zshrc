@@ -154,8 +154,43 @@ _aws_segment() {
   fi
 }
 
-# Refresh vcs_info + insert a blank line before each prompt
-_prompt_precmd() { vcs_info; print '' }
+# Async vcs_info — keep the prompt instant, even in huge repos.
+# vcs_info plus our untracked / ahead-behind hooks fire several git commands
+# (status --porcelain, two rev-list --count). Running them synchronously in
+# precmd blocks the prompt from drawing until git answers. Instead we compute
+# the git segment in a forked process and use a ZLE fd watcher (`zle -F`) to
+# splice the result back in and redraw — the prompt appears immediately and the
+# git segment fills in a few ms later, with no external plugins.
+typeset -g _vcs_async_fd=0
+
+_vcs_async_start() {
+  # Tear down a still-running worker from a previous (rapid) prompt.
+  if (( _vcs_async_fd )); then
+    zle -F "$_vcs_async_fd" 2>/dev/null
+    exec {_vcs_async_fd}<&- 2>/dev/null
+    _vcs_async_fd=0
+  fi
+
+  # Fork a worker that computes vcs_info and streams the message back over a
+  # pipe. The worker inherits the current $PWD, so git runs in the right repo.
+  exec {_vcs_async_fd}< <(vcs_info; print -rn -- "$vcs_info_msg_0_")
+
+  # ZLE invokes the callback once the worker finishes (its pipe hits EOF).
+  zle -F "$_vcs_async_fd" _vcs_async_done
+}
+
+_vcs_async_done() {
+  local fd=$1 resp
+  zle -F "$fd"                          # unregister this watcher
+  IFS= read -r -d '' -u "$fd" resp      # slurp the whole git segment (-d '' = to EOF)
+  exec {fd}<&-                          # close our end of the pipe
+  _vcs_async_fd=0
+  vcs_info_msg_0_=$resp
+  zle reset-prompt                      # redraw the prompt with fresh git info
+}
+
+# Kick off the async refresh + insert a blank line before each prompt.
+_prompt_precmd() { _vcs_async_start; print '' }
 add-zsh-hook precmd _prompt_precmd
 
 setopt PROMPT_SUBST
