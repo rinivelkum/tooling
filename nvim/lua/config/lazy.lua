@@ -2,7 +2,7 @@ local uv = vim.uv
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 
 if not uv.fs_stat(lazypath) then
-  vim.fn.system({
+  local out = vim.fn.system({
     "git",
     "clone",
     "--filter=blob:none",
@@ -10,6 +10,11 @@ if not uv.fs_stat(lazypath) then
     "https://github.com/folke/lazy.nvim.git",
     lazypath,
   })
+  if vim.v.shell_error ~= 0 then
+    vim.api.nvim_echo({ { "Failed to clone lazy.nvim:\n" .. out, "ErrorMsg" } }, true, {})
+    vim.fn.getchar()
+    os.exit(1)
+  end
 end
 
 vim.opt.rtp:prepend(lazypath)
@@ -35,6 +40,7 @@ require("lazy").setup({
     rtp = {
       disabled_plugins = {
         "gzip",
+        "rplugin",
         "tarPlugin",
         "tohtml",
         "tutor",

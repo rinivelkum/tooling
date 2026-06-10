@@ -39,7 +39,6 @@ return {
             height = 0.85,
             width = 0.90,
           },
-          file_ignore_patterns = ignore.lua_patterns,
         },
         pickers = {
           find_files = {

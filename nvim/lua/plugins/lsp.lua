@@ -4,8 +4,7 @@ return {
     event = { "BufReadPre", "BufNewFile" },
     dependencies = {
       {
-        "williamboman/mason.nvim",
-        build = ":MasonUpdate",
+        "mason-org/mason.nvim",
         opts = {
           max_concurrent_installers = 4,
           ui = {
@@ -13,14 +12,9 @@ return {
           },
         },
       },
-      "williamboman/mason-lspconfig.nvim",
+      "mason-org/mason-lspconfig.nvim",
     },
     config = function()
-      if not (vim.lsp.config and vim.lsp.enable) then
-        vim.notify("This LSP config requires Neovim 0.11+", vim.log.levels.ERROR)
-        return
-      end
-
       vim.diagnostic.config({
         signs = false,
         virtual_text = true,
@@ -44,6 +38,13 @@ return {
 
       vim.api.nvim_create_autocmd("LspAttach", {
         callback = function(args)
+          local client = vim.lsp.get_client_by_id(args.data.client_id)
+          if client and client:supports_method("textDocument/completion") then
+            vim.lsp.completion.enable(true, client.id, args.buf, {
+              autotrigger = true,
+            })
+          end
+
           local map = function(lhs, rhs, desc)
             vim.keymap.set("n", lhs, rhs, {
               buffer = args.buf,
@@ -62,43 +63,18 @@ return {
         end,
       })
 
-      local capabilities = vim.lsp.protocol.make_client_capabilities()
-      local servers = {
-        gopls = { capabilities = capabilities },
-        rust_analyzer = { capabilities = capabilities },
-        pyright = { capabilities = capabilities },
-        html = { capabilities = capabilities },
-        cssls = { capabilities = capabilities },
-      }
-
-      local enabled = {
-        "gopls",
-        "rust_analyzer",
-        "pyright",
-        "html",
-        "cssls",
-      }
-
-      local ts_server = nil
-      if vim.lsp.config.ts_ls then
-        ts_server = "ts_ls"
-      end
-      if ts_server then
-        servers[ts_server] = { capabilities = capabilities }
-        enabled[#enabled + 1] = ts_server
-      end
-
+      -- mason-lspconfig v2 runs vim.lsp.enable() for every installed server,
+      -- so installing is all that's needed; lspconfig provides the configs.
       require("mason-lspconfig").setup({
-        ensure_installed = enabled,
-        automatic_installation = true,
+        ensure_installed = {
+          "gopls",
+          "rust_analyzer",
+          "pyright",
+          "html",
+          "cssls",
+          "ts_ls",
+        },
       })
-
-      for name, opts in pairs(servers) do
-        vim.lsp.config(name, opts)
-      end
-      for _, name in ipairs(enabled) do
-        vim.lsp.enable(name)
-      end
     end,
   },
 }
