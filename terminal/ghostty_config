@@ -9,3 +9,29 @@ window-padding-x = 0
 window-padding-y = 0
 adjust-cell-height=-10%
 scrollback-limit = 100000000
+
+# Cursor
+# Force a block cursor everywhere. shell-integration-features=no-cursor stops
+# the shell integration from switching to a bar cursor at the prompt.
+cursor-style = block
+shell-integration-features = no-cursor
+
+# macOS-specific features
+# Treat Option as Alt so Alt+f/Alt+b/Alt+arrows do word navigation.
+# Use "left" instead of "true" to keep the right Option key for typing
+# special characters (em dash, accents, etc.).
+macos-option-as-alt = true
+# Native integrated tab bar in the titlebar.
+macos-titlebar-style = tabs
+# Use the Mac display's wide color gamut.
+window-colorspace = display-p3
+
+# Optional macOS extras (uncomment to taste):
+# Instant fullscreen that stays in the current Space (no native animation).
+# macos-non-native-fullscreen = true
+# Translucent, blurred window background.
+# background-opacity = 0.96
+# background-blur = true
+# Use a custom app icon.
+# macos-icon = custom-style
+# macos-icon-frame = aluminum

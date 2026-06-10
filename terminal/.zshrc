@@ -34,15 +34,46 @@ setopt INC_APPEND_HISTORY     # write immediately, not on exit
 # ---------------------------------------------------------------------------
 #  Completion
 # ---------------------------------------------------------------------------
-autoload -Uz compinit && compinit
+# compinit rebuilds the dump and runs an fpath security audit on every shell,
+# costing ~100ms. Instead: if a dump rebuilt within the last 24h exists, load
+# it fast and skip the audit (-C); otherwise do a full rebuild (this also
+# covers the first-run / missing-dump case).
+autoload -Uz compinit
+_zdump=${ZDOTDIR:-$HOME}/.zcompdump
+_zdump_fresh=($_zdump(Nmh-24))
+if (( ${#_zdump_fresh} )); then
+  compinit -C -d "$_zdump"
+else
+  compinit -d "$_zdump"
+fi
+unset _zdump _zdump_fresh
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'  # case-insensitive
 zstyle ':completion:*' menu select                     # arrow-key menu
+
+# ---------------------------------------------------------------------------
+#  _evalcache — cache slow `eval "$(tool init)"` output to disk
+# ---------------------------------------------------------------------------
+# Sources a cached copy of a tool's init script instead of spawning the tool
+# on every startup. The cache is regenerated only when the tool's binary is
+# newer than the cache (e.g. after a brew upgrade).
+#   usage: _evalcache <name> <command> [args...]
+_ZSH_EVALCACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/zsh-evalcache"
+_evalcache() {
+  local name=$1; shift
+  local cache="$_ZSH_EVALCACHE_DIR/${name}.zsh"
+  local bin=${commands[$1]}
+  if [[ ! -s $cache || -z $bin || $bin -nt $cache ]]; then
+    [[ -d $_ZSH_EVALCACHE_DIR ]] || mkdir -p "$_ZSH_EVALCACHE_DIR"
+    "$@" >| "$cache" 2>/dev/null
+  fi
+  source "$cache"
+}
 
 # ---------------------------------------------------------------------------
 #  Zoxide — `z <partial>` jumps to frecent dirs, `zi` for fuzzy picker
 # ---------------------------------------------------------------------------
 if command -v zoxide &>/dev/null; then
-  eval "$(zoxide init zsh)"
+  _evalcache zoxide zoxide init zsh
 fi
 
 # ---------------------------------------------------------------------------
@@ -412,7 +443,7 @@ extract() {
 #  GitHub CLI Completion (if gh is installed)
 # ---------------------------------------------------------------------------
 if command -v gh &>/dev/null; then
-  eval "$(gh completion -s zsh)"
+  _evalcache gh gh completion -s zsh
 fi
 
 # ---------------------------------------------------------------------------
@@ -465,7 +496,7 @@ theme auto
 # ---------------------------------------------------------------------------
 if command -v fzf &>/dev/null; then
   # Ctrl-R history, Ctrl-T file picker, Alt-C dir jump, plus completion
-  eval "$(fzf --zsh)"
+  _evalcache fzf fzf --zsh
 
   # Use fd for file/dir listing if available — respects .gitignore, faster than find
   if command -v fd &>/dev/null; then
@@ -564,7 +595,38 @@ fi
 #  End of .zshrc
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+#  Node / nvm — lazy loaded (was ~500ms, the bulk of startup time)
+# ---------------------------------------------------------------------------
+# Sourcing nvm.sh eagerly audits/auto-switches the active node version on every
+# shell. Instead we:
+#   1. Put the default node version's bin on PATH directly, so node/npm/npx/
+#      yarn/etc. (and the prompt's node segment) work instantly with no nvm.
+#   2. Defer the heavy nvm machinery until the first time you actually run `nvm`.
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+if [[ -d $NVM_DIR/versions/node ]]; then
+  _nvm_default=""
+  [[ -r $NVM_DIR/alias/default ]] && _nvm_default=$(<"$NVM_DIR/alias/default")
+  case "$_nvm_default" in
+    v[0-9]*) _nvm_ver=$_nvm_default ;;   # pinned, e.g. v20.11.0
+    [0-9]*)  _nvm_ver=v$_nvm_default ;;  # pinned without the leading v
+    *)                                   # "node"/"lts/*"/"stable"/unset -> newest
+      _nvm_installed=($NVM_DIR/versions/node/*(/Nn))
+      _nvm_ver=${_nvm_installed[-1]:t}
+      unset _nvm_installed ;;
+  esac
+  [[ -n $_nvm_ver && -d $NVM_DIR/versions/node/$_nvm_ver/bin ]] && \
+    path=("$NVM_DIR/versions/node/$_nvm_ver/bin" $path)
+  unset _nvm_default _nvm_ver
+fi
+
+# First `nvm` call swaps this stub for the real thing, then runs your command.
+nvm() {
+  unset -f nvm
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+  nvm "$@"
+}
+
 export PATH="$HOME/.local/bin:$PATH"
