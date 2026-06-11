@@ -7,6 +7,11 @@
 #
 # --paging=never is required: lazygit scrolls the diff panel itself, so delta
 # must not pipe its output through `less` inside it (that would garble the view).
+gui:
+  # Scroll the diff panel one line at a time (lazygit, not delta, drives this
+  # scroll — delta only renders). Defaults to 2.
+  scrollHeight: 1
+
 git:
   pagers:
     - colorArg: always
