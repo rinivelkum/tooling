@@ -9,6 +9,9 @@ opt.foldcolumn = "0"
 opt.numberwidth = 1
 opt.showmode = false
 
+-- Scrolling — one line per mouse-wheel notch (default ver:3 jumps 3 lines)
+opt.mousescroll = "ver:1,hor:6"
+
 -- Responsiveness
 opt.updatetime = 200
 opt.timeoutlen = 300

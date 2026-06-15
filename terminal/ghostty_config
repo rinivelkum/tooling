@@ -9,6 +9,9 @@ window-padding-x = 0
 window-padding-y = 0
 adjust-cell-height=-10%
 scrollback-limit = 100000000
+# Scroll one line per mouse-wheel notch (default discrete:3 jumps 3 lines).
+# precision:1 leaves trackpad scrolling at its natural 1:1 speed.
+mouse-scroll-multiplier = precision:1,discrete:1
 
 # Cursor
 # Force a block cursor everywhere. shell-integration-features=no-cursor stops
