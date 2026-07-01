@@ -8,7 +8,6 @@ local names = {
   "build",
   ".next",
   ".nuxt",
-  "coverage",
   ".venv",
   "venv",
   "__pycache__",
@@ -21,18 +20,34 @@ local names = {
   ".DS_Store",
 }
 
+-- Only ignored when it sits directly at the search root; nested dirs like
+-- packages/app/coverage stay visible.
+local root_only_names = {
+  "coverage",
+}
+
 -- Bare names (no slash) match at any depth, so nested dirs like
--- packages/app/node_modules are excluded too.
+-- packages/app/node_modules are excluded too. A leading slash anchors a
+-- glob to the search root instead of matching at any depth.
 M.rg_globs = {}
 for _, name in ipairs(names) do
   M.rg_globs[#M.rg_globs + 1] = "!" .. name
 end
+for _, name in ipairs(root_only_names) do
+  M.rg_globs[#M.rg_globs + 1] = "!/" .. name
+end
 
 -- netrw matches each comma-separated entry as a vim regex against the
 -- listed name; directories carry a trailing slash, hence the optional \/.
+local function netrw_pat(name)
+  return "^" .. name:gsub("%.", [[\.]]) .. [[\/\=$]]
+end
 local netrw_pats = {}
 for _, name in ipairs(names) do
-  netrw_pats[#netrw_pats + 1] = "^" .. name:gsub("%.", [[\.]]) .. [[\/\=$]]
+  netrw_pats[#netrw_pats + 1] = netrw_pat(name)
+end
+for _, name in ipairs(root_only_names) do
+  netrw_pats[#netrw_pats + 1] = netrw_pat(name)
 end
 M.netrw_hide = table.concat(netrw_pats, ",")
 
