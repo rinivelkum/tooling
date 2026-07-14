@@ -699,17 +699,24 @@ export NVM_DIR="$HOME/.nvm"
 if [[ -d $NVM_DIR/versions/node ]]; then
   _nvm_default=""
   [[ -r $NVM_DIR/alias/default ]] && _nvm_default=$(<"$NVM_DIR/alias/default")
+  _nvm_installed=($NVM_DIR/versions/node/*(/Nn))
+  _nvm_ver=""
   case "$_nvm_default" in
-    v[0-9]*) _nvm_ver=$_nvm_default ;;   # pinned, e.g. v20.11.0
-    [0-9]*)  _nvm_ver=v$_nvm_default ;;  # pinned without the leading v
-    *)                                   # "node"/"lts/*"/"stable"/unset -> newest
-      _nvm_installed=($NVM_DIR/versions/node/*(/Nn))
-      _nvm_ver=${_nvm_installed[-1]:t}
-      unset _nvm_installed ;;
+    v[0-9]*|[0-9]*)                       # exact or abbreviated: 22, 22.14, v22.14.0
+      _nvm_prefix=${_nvm_default#v}
+      for _nvm_path in $_nvm_installed; do
+        _nvm_candidate=${_nvm_path:t}
+        if [[ $_nvm_candidate == v$_nvm_prefix || $_nvm_candidate == v$_nvm_prefix.* ]]; then
+          _nvm_ver=$_nvm_candidate        # numeric sort leaves the newest match last
+        fi
+      done
+      ;;
+    *)                                    # "node"/"lts/*"/"stable"/unset -> newest
+      _nvm_ver=${_nvm_installed[-1]:t} ;;
   esac
   [[ -n $_nvm_ver && -d $NVM_DIR/versions/node/$_nvm_ver/bin ]] && \
     path=("$NVM_DIR/versions/node/$_nvm_ver/bin" $path)
-  unset _nvm_default _nvm_ver
+  unset _nvm_default _nvm_installed _nvm_ver _nvm_prefix _nvm_path _nvm_candidate
 fi
 
 # First `nvm` call swaps this stub for the real thing, then runs your command.

@@ -56,6 +56,10 @@ echo
 
 if command -v brew &>/dev/null; then
   echo "brew packages:"
+  # Core tools configured by this repository.
+  brew_install neovim
+  brew_install ripgrep
+
   # Colima-backed Docker CLI setup.
   brew_install colima
   brew_install docker
@@ -67,6 +71,7 @@ if command -v brew &>/dev/null; then
   brew_install bat
   brew_install eza
   brew_install fd
+  brew_install fzf
   brew_install zoxide
   brew_install git-delta
   brew_install lazygit
