@@ -270,6 +270,12 @@ alias gcam="git commit --amend"
 alias gco="git checkout"
 alias gsw="git switch"
 alias gsc="git switch -c"
+alias gb="git branch"
+alias gba="git branch --all"
+alias gbv="git branch -vv"
+alias gbd="git branch -d"
+alias gbD="git branch -D"
+alias gbm="git branch -m"
 alias gp="git push"
 alias gpf="git push --force-with-lease"
 alias gpu="git push -u origin HEAD"
@@ -357,6 +363,23 @@ gdel() {
   git branch -d "$1" 2>/dev/null
   git push origin --delete "$1" 2>/dev/null
   echo "Deleted branch: $1"
+}
+
+# Delete local branches whose upstream is gone (e.g. squash-merged PRs, which
+# `git branch -d` can't detect as merged). Asks before deleting.
+gbclean() {
+  git fetch --prune
+  local -a gone
+  gone=(${(f)"$(git for-each-ref --format='%(refname:short) %(upstream:track)' refs/heads \
+    | awk '$2 == "[gone]" {print $1}')"})
+  if (( ${#gone} == 0 )); then
+    echo "No stale branches."
+    return 0
+  fi
+  printf '%s\n' $gone
+  printf 'Delete these %d branch(es)? [y/N] ' ${#gone}
+  read -r reply
+  [[ $reply == [yY]* ]] && git branch -D $gone
 }
 
 # Interactive rebase last N commits: greb 5
@@ -602,6 +625,13 @@ if command -v fzf &>/dev/null; then
     local branch
     branch=$(git branch --all --sort=-committerdate | fzf --height 40% --reverse | sed 's/^[* ]*//' | sed 's|remotes/origin/||')
     [ -n "$branch" ] && git checkout "$branch"
+  }
+
+  # Fuzzy delete local branches (Tab to multi-select; current branch excluded)
+  fbd() {
+    local branches
+    branches=$(git branch --sort=-committerdate | grep -v '^\*' | sed 's/^ *//' | fzf -m --height 40% --reverse)
+    [ -n "$branches" ] && echo "$branches" | xargs git branch -D
   }
 
   # Fuzzy git log browser
