@@ -549,6 +549,9 @@ _theme_dark() {
   "
   export BAT_THEME="gruvbox-dark"
   export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/ripgreprc-dark"
+  # PGCLIRC replaces ~/.config/pgcli/config wholesale (pgcli layers it over its
+  # own packaged defaults), so these files hold only theme keys.
+  export PGCLIRC="$HOME/.config/pgcli/config-dark"
 }
 
 _theme_light() {
@@ -560,6 +563,7 @@ _theme_light() {
   "
   export BAT_THEME="gruvbox-light"
   export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/ripgreprc-light"
+  export PGCLIRC="$HOME/.config/pgcli/config-light"
 }
 
 # `defaults` returns "Dark" when dark mode is active; the key is unset (and the

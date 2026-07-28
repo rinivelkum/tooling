@@ -47,6 +47,8 @@ link "$REPO_ROOT/terminal/.zshrc" "$HOME/.zshrc"
 link "$REPO_ROOT/terminal/ghostty_config" "$HOME/.config/ghostty/config"
 link "$REPO_ROOT/terminal/ripgreprc-dark" "$HOME/.config/ripgrep/ripgreprc-dark"
 link "$REPO_ROOT/terminal/ripgreprc-light" "$HOME/.config/ripgrep/ripgreprc-light"
+link "$REPO_ROOT/terminal/pgcli_config-dark" "$HOME/.config/pgcli/config-dark"
+link "$REPO_ROOT/terminal/pgcli_config-light" "$HOME/.config/pgcli/config-light"
 link "$REPO_ROOT/terminal/lazygit_config.yml" "$HOME/Library/Application Support/lazygit/config.yml"
 echo
 

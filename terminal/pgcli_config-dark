@@ -1,0 +1,93 @@
+# vi: ft=dosini
+# Gruvbox Material Dark colors for pgcli.
+#
+# Selected by `PGCLIRC`, which `_theme_dark` exports in .zshrc. PGCLIRC replaces
+# ~/.config/pgcli/config outright — pgcli layers this file over its own packaged
+# pgclirc, not over the user config — so only the theme keys belong here and
+# every other setting keeps its pgcli default.
+#
+# Hexes are shared with FZF_DEFAULT_OPTS in .zshrc: bg+ #32302f, border #45403d,
+# fg #d4be98, fg+ #ddc7a1, prompt #d8a657, hl #7daea3, pointer #ea6962.
+
+[main]
+# `bw` contributes bold/italic and no color, so nothing bleeds through from a
+# Pygments theme's own palette; every color below is explicit.
+syntax_style = bw
+
+[colors]
+# Completion popup. One surface for the whole popup with the meta column merely
+# dimmed — splitting body and meta across two greys reads as mud.
+#
+# WRITTEN INVERTED on purpose: prompt_toolkit's defaults apply `reverse` to
+# completion-menu.completion.current (and to `selected` below), so the fg/bg pair
+# here is swapped at render time. Cancelling it with `noreverse` is not an option
+# — pgcli feeds this same section to Pygments for the result-table style, and
+# Pygments rejects `noreverse` as a color, which crashes pgcli on startup. So the
+# line below reads "aqua text on bg0" and renders as bg0 text on an aqua bar.
+# Only these two classes are affected; nothing else here carries `reverse`.
+completion-menu = 'bg:#45403d #d4be98'
+completion-menu.completion = 'bg:#45403d #d4be98'
+completion-menu.completion.current = '#7daea3 bg:#282828 bold'
+completion-menu.meta.completion = 'bg:#45403d #a89984'
+completion-menu.meta.completion.current = 'bg:#7daea3 #282828'
+completion-menu.multi-column-meta = 'bg:#45403d #a89984'
+
+# The popup's vertical scrollbar comes from prompt_toolkit's margin, which reads
+# scrollbar.background/.button — NOT pgcli's `scrollbar`/`scrollbar.arrow` keys
+# (those only cover the </> arrows in multi-column mode). Without these two the
+# bar keeps prompt_toolkit's stock #aaaaaa/#444444 and shows up as a grey-charcoal
+# block that ignores the theme entirely.
+scrollbar.background = 'bg:#32302f'
+scrollbar.button = 'bg:#928374'
+scrollbar = 'bg:#32302f #d4be98'
+scrollbar.arrow = 'noinherit bold bg:#32302f #7daea3'
+
+# Ghostty's Gruvbox selection swaps fg/bg; mirror it rather than invent a color.
+# Also written inverted, for the `reverse` reason above.
+selected = '#d4be98 bg:#282828'
+search = 'bg:#d8a657 #282828'
+search.current = 'bg:#a9b665 #282828'
+
+bottom-toolbar = 'bg:#32302f #a89984'
+# grey0 on the statusline surface only reaches 2.7:1; grey1 clears 3:1.
+bottom-toolbar.off = 'bg:#32302f #928374'
+bottom-toolbar.on = 'bg:#32302f #ddc7a1 bold'
+bottom-toolbar.transaction.valid = 'bg:#32302f #a9b665 bold'
+bottom-toolbar.transaction.failed = 'bg:#32302f #ea6962 bold'
+search-toolbar = 'noinherit bold'
+search-toolbar.text = 'nobold'
+system-toolbar = 'noinherit bold'
+arg-toolbar = 'noinherit bold'
+arg-toolbar.text = 'nobold'
+
+prompt = '#d8a657 bold'
+continuation = '#7c6f64'
+
+# SQL syntax highlighting for the input buffer. The `literal.string`,
+# `literal.number` and `keyword` keys documented by pgcli only reach the output
+# token style, not the buffer — the lexer emits `pygments.*` classes, so those
+# are the names that actually recolor what you type.
+# (pgcli logs one "Unhandled style / class name" line per key below into
+# ~/.config/pgcli/log at startup; it only knows these names on the buffer side.)
+pygments.keyword = '#ea6962 bold'
+pygments.keyword.type = '#d8a657'
+pygments.name = '#d4be98'
+pygments.name.builtin = '#d8a657'
+pygments.name.function = '#a9b665'
+# `noitalic` undoes bw's italic on strings; only comments should be italic.
+pygments.literal.string = '#a9b665 noitalic'
+pygments.literal.string.name = '#89b482 noitalic'
+pygments.literal.number = '#d3869b'
+pygments.comment = '#928374 italic'
+pygments.operator = '#e78a4e'
+pygments.punctuation = '#a89984'
+pygments.error = '#ea6962 bold'
+
+# Result tables. These bypass prompt_toolkit: cli_helpers renders them through
+# Pygments' truecolor formatter (picked because Ghostty sets COLORTERM=truecolor),
+# which is exactly why these have to be hex — it substitutes fixed RGB for ANSI
+# palette names, turning e.g. 'ansiblue' into navy.
+output.header = "#7daea3 bold"
+output.odd-row = ""
+output.even-row = ""
+output.null = "#7c6f64"
