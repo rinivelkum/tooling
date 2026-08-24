@@ -79,6 +79,9 @@ if command -v brew &>/dev/null; then
   brew_install lazygit
   brew_install zsh-autosuggestions
   brew_install zsh-syntax-highlighting
+
+  # Extras — not needed by .zshrc, just tools I want on every machine.
+  brew_install pgcli
   echo
 
   echo "git-delta config:"
