@@ -65,7 +65,7 @@ return {
           "pyright",
           "html",
           "cssls",
-          "tsgo",
+          "tsc",
         },
       })
     end,
