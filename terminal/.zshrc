@@ -765,5 +765,6 @@ nvm() {
 # assignments to the path array, not ones through the tied PATH scalar.
 path=("$HOME/.local/bin" $path)
 
-# rustup keeps the cargo/rustc/rustfmt shims here, not in brew's bin.
-path=("$HOME/.cargo/bin" $path)
+# brew's rustup formula ships the cargo/rustc/rustfmt shims in its own keg and
+# no longer installs rustup-init, so ~/.cargo/bin is never created.
+path=("$HOMEBREW_PREFIX/opt/rustup/bin" $path)

@@ -87,9 +87,10 @@ if command -v brew &>/dev/null; then
   echo
 
   echo "rust toolchain:"
-  # brew's rustup formula ships only the installer; without a default toolchain
-  # the cargo/rustc shims in ~/.cargo/bin refuse to run.
-  if rustup default &>/dev/null; then
+  # Without a default toolchain the cargo/rustc shims refuse to run. Test
+  # settings.toml rather than `rustup default`, which falls back to reporting
+  # stable and exits 0 even when nothing is configured or installed.
+  if grep -q '^default_toolchain' "${RUSTUP_HOME:-$HOME/.rustup}/settings.toml" 2>/dev/null; then
     echo "  [skip]   default toolchain already set ($(rustup default))"
   else
     echo "  [rustup] installing stable toolchain"
