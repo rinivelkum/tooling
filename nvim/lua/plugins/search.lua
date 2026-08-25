@@ -48,6 +48,9 @@ return {
               "--hidden",
             }),
           },
+          live_grep = {
+            additional_args = { "--fixed-strings" },
+          },
           buffers = {
             sort_lastused = true,
           },
