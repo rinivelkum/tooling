@@ -81,7 +81,20 @@ if command -v brew &>/dev/null; then
   brew_install zsh-syntax-highlighting
 
   # Extras — not needed by .zshrc, just tools I want on every machine.
+  brew_install go
   brew_install pgcli
+  brew_install rustup
+  echo
+
+  echo "rust toolchain:"
+  # brew's rustup formula ships only the installer; without a default toolchain
+  # the cargo/rustc shims in ~/.cargo/bin refuse to run.
+  if rustup default &>/dev/null; then
+    echo "  [skip]   default toolchain already set ($(rustup default))"
+  else
+    echo "  [rustup] installing stable toolchain"
+    rustup default stable
+  fi
   echo
 
   echo "git-delta config:"

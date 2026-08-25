@@ -764,3 +764,6 @@ nvm() {
 # Array form, not `export PATH="...:$PATH"` — typeset -U only dedupes
 # assignments to the path array, not ones through the tied PATH scalar.
 path=("$HOME/.local/bin" $path)
+
+# rustup keeps the cargo/rustc/rustfmt shims here, not in brew's bin.
+path=("$HOME/.cargo/bin" $path)
