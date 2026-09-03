@@ -1,8 +1,11 @@
 local M = {}
 
 -- Single source of truth for everything we never want to see.
-local names = {
-  ".git",
+
+-- Directories, hidden at any depth so nested dirs like
+-- packages/app/node_modules are excluded too. A regular file with one of
+-- these names (a repo-root `build` script, say) stays visible.
+local dir_names = {
   "node_modules",
   "dist",
   "build",
@@ -17,36 +20,49 @@ local names = {
   "target",
   "vendor",
   ".idea",
+}
+
+-- Hidden whether file or directory. .git is a file in worktrees and
+-- submodules; .DS_Store is always a file.
+local any_names = {
+  ".git",
   ".DS_Store",
 }
 
 -- Only ignored when it sits directly at the search root; nested dirs like
 -- packages/app/coverage stay visible.
-local root_only_names = {
+local root_only_dir_names = {
   "coverage",
 }
 
--- Bare names (no slash) match at any depth, so nested dirs like
--- packages/app/node_modules are excluded too. A leading slash anchors a
--- glob to the search root instead of matching at any depth.
+-- rg globs follow gitignore rules: a trailing slash matches directories only,
+-- a leading slash anchors the glob to the search root instead of any depth.
 M.rg_globs = {}
-for _, name in ipairs(names) do
+for _, name in ipairs(dir_names) do
+  M.rg_globs[#M.rg_globs + 1] = "!" .. name .. "/"
+end
+for _, name in ipairs(any_names) do
   M.rg_globs[#M.rg_globs + 1] = "!" .. name
 end
-for _, name in ipairs(root_only_names) do
-  M.rg_globs[#M.rg_globs + 1] = "!/" .. name
+for _, name in ipairs(root_only_dir_names) do
+  M.rg_globs[#M.rg_globs + 1] = "!/" .. name .. "/"
 end
 
 -- netrw matches each comma-separated entry as a vim regex against the
 -- listed name; directories carry a trailing slash, hence the optional \/.
+-- \C keeps the match case-sensitive despite 'ignorecase', so Build/ or
+-- Vendor/ are not hidden.
 local function netrw_pat(name)
-  return "^" .. name:gsub("%.", [[\.]]) .. [[\/\=$]]
+  return [[^\C]] .. name:gsub("%.", [[\.]]) .. [[\/\=$]]
 end
 local netrw_pats = {}
-for _, name in ipairs(names) do
+for _, name in ipairs(dir_names) do
   netrw_pats[#netrw_pats + 1] = netrw_pat(name)
 end
-for _, name in ipairs(root_only_names) do
+for _, name in ipairs(any_names) do
+  netrw_pats[#netrw_pats + 1] = netrw_pat(name)
+end
+for _, name in ipairs(root_only_dir_names) do
   netrw_pats[#netrw_pats + 1] = netrw_pat(name)
 end
 M.netrw_hide = table.concat(netrw_pats, ",")
