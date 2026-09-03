@@ -33,9 +33,16 @@ with:
 Use `:Lazy sync` instead if you also want to remove plugins that are no longer
 in the spec.
 
-## Updating LSP servers (Mason)
+## Installing LSP servers (Mason)
 
-Language servers are installed through [mason.nvim](https://github.com/mason-org/mason.nvim).
+Language servers are installed through [mason.nvim](https://github.com/mason-org/mason.nvim)
+and enabled by name in `lua/plugins/lsp.lua`. Nothing installs them
+automatically, so on a new machine run once:
+
+```
+:MasonInstall gopls rust-analyzer pyright html-lsp css-lsp tsc
+```
+
 Outdated-package checks on open are disabled, so update manually:
 
 ```

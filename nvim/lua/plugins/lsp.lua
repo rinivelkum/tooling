@@ -1,20 +1,22 @@
 return {
   {
+    "mason-org/mason.nvim",
+    cmd = "Mason",
+    opts = {
+      max_concurrent_installers = 4,
+      ui = {
+        check_outdated_packages_on_open = false,
+      },
+    },
+  },
+  {
     "neovim/nvim-lspconfig",
     event = { "BufReadPre", "BufNewFile" },
-    dependencies = {
-      {
-        "mason-org/mason.nvim",
-        opts = {
-          max_concurrent_installers = 4,
-          ui = {
-            check_outdated_packages_on_open = false,
-          },
-        },
-      },
-      "mason-org/mason-lspconfig.nvim",
-    },
     config = function()
+      -- mason.setup() does this too, but mason only loads on :Mason now and
+      -- the servers must be on PATH before vim.lsp.enable() spawns them.
+      vim.env.PATH = vim.fn.stdpath("data") .. "/mason/bin:" .. vim.env.PATH
+
       vim.diagnostic.config({
         signs = false,
         virtual_text = true,
@@ -23,19 +25,8 @@ return {
         severity_sort = true,
       })
 
-      vim.keymap.set("n", "[d", function()
-        vim.diagnostic.jump({ count = -1, float = false })
-      end, {
-        desc = "Previous diagnostic",
-        silent = true,
-      })
-      vim.keymap.set("n", "]d", function()
-        vim.diagnostic.jump({ count = 1, float = false })
-      end, {
-        desc = "Next diagnostic",
-        silent = true,
-      })
-
+      -- References, implementation, hover and diagnostic jumps use the
+      -- built-in grr, gri, K, [d and ]d.
       vim.api.nvim_create_autocmd("LspAttach", {
         callback = function(args)
           local map = function(lhs, rhs, desc)
@@ -48,25 +39,31 @@ return {
 
           map("gd", vim.lsp.buf.definition, "Go to definition")
           map("gD", vim.lsp.buf.declaration, "Go to declaration")
-          map("gi", vim.lsp.buf.implementation, "Go to implementation")
-          map("gr", vim.lsp.buf.references, "Go to references")
-          map("K", vim.lsp.buf.hover, "Hover")
           map("<leader>rn", vim.lsp.buf.rename, "Rename symbol")
           map("<leader>ca", vim.lsp.buf.code_action, "Code action")
         end,
       })
 
-      -- mason-lspconfig v2 runs vim.lsp.enable() for every installed server,
-      -- so installing is all that's needed; lspconfig provides the configs.
-      require("mason-lspconfig").setup({
-        ensure_installed = {
-          "gopls",
-          "rust_analyzer",
-          "pyright",
-          "html",
-          "cssls",
-          "tsc",
-        },
+      -- lspconfig's tsc root_dir runs `tsc --version` synchronously (spawning
+      -- node) before the first attach in each root, 30-70ms warm and up to
+      -- 0.5s cold. Mason's tsc is TypeScript 7, so skip the probe.
+      vim.lsp.config("tsc", {
+        root_dir = function(bufnr, on_dir)
+          local root = vim.fs.root(bufnr, {
+            { "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb", "bun.lock" },
+            { ".git" },
+          })
+          on_dir(root or vim.fn.getcwd())
+        end,
+      })
+
+      vim.lsp.enable({
+        "gopls",
+        "rust_analyzer",
+        "pyright",
+        "html",
+        "cssls",
+        "tsc",
       })
     end,
   },
