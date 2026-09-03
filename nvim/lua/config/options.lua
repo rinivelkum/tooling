@@ -26,6 +26,11 @@ opt.splitbelow = true
 opt.splitright = true
 opt.clipboard = "unnamedplus"
 
+-- ftplugin/python.vim calls has('python3'), which spawns python3 to look for
+-- the pynvim module (~37ms on the first Python buffer). Remote plugins are
+-- disabled (rplugin) so the provider is never used.
+vim.g.loaded_python3_provider = 0
+
 -- Fast grep via ripgrep
 opt.grepprg = ignore.grepprg()
 opt.grepformat = "%f:%l:%c:%m"
