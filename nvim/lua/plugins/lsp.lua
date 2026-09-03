@@ -47,13 +47,20 @@ return {
       -- lspconfig's tsc root_dir runs `tsc --version` synchronously (spawning
       -- node) before the first attach in each root, 30-70ms warm and up to
       -- 0.5s cold. Mason's tsc is TypeScript 7, so skip the probe.
+      --
+      -- Leaving on_dir uncalled declines the attach, which is what keeps a
+      -- server off JS/TS files opened outside any project. Falling back to
+      -- getcwd() instead meant every scratch file in /tmp started a server
+      -- rooted wherever nvim happened to be launched.
       vim.lsp.config("tsc", {
         root_dir = function(bufnr, on_dir)
           local root = vim.fs.root(bufnr, {
             { "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb", "bun.lock" },
             { ".git" },
           })
-          on_dir(root or vim.fn.getcwd())
+          if root then
+            on_dir(root)
+          end
         end,
       })
 
