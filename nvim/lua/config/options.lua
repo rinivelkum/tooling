@@ -25,6 +25,7 @@ opt.smartcase = true
 opt.splitbelow = true
 opt.splitright = true
 opt.clipboard = "unnamedplus"
+opt.wrap = false
 
 -- ftplugin/python.vim calls has('python3'), which spawns python3 to look for
 -- the pynvim module (~37ms on the first Python buffer). Remote plugins are
