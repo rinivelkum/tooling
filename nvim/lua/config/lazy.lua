@@ -27,7 +27,7 @@ require("lazy").setup({
     lazy = true,
   },
   install = {
-    colorscheme = { "gruvbox-material" },
+    colorscheme = { "vim" },
   },
   checker = {
     enabled = false,

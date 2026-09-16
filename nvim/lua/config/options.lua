@@ -36,9 +36,25 @@ vim.g.loaded_python3_provider = 0
 opt.grepprg = ignore.grepprg()
 opt.grepformat = "%f:%l:%c:%m"
 
--- Theme base
-opt.termguicolors = true
+-- Theme base — Gruvbox when the shell's `theme` says so, the terminal's own
+-- palette otherwise. $THEME comes from .zshrc; the TERM_PROGRAM fallback covers
+-- nvim launched outside that shell, where Ghostty still means Gruvbox.
+-- With termguicolors off, highlights fall back to their cterm values, most of
+-- which are ANSI 0-15 that the terminal maps from its profile colors. The `vim`
+-- scheme is the only built-in that leaves Normal undefined, so the buffer keeps
+-- the terminal's background instead of painting its own.
+-- plugins/colorscheme.lua reads vim.g.tooling_gruvbox to load the plugin on the
+-- same condition, which works because init.lua requires this file before lazy.
+-- Setting `background` explicitly drops Nvim's OSC 11 query, which is the point:
+-- every profile here is light, so there is nothing to detect.
+local gruvbox = vim.env.THEME == "gruvbox"
+  or (vim.env.THEME == nil and vim.env.TERM_PROGRAM == "ghostty")
+vim.g.tooling_gruvbox = gruvbox
+opt.termguicolors = gruvbox
 vim.o.background = "light"
+if not gruvbox then
+  vim.cmd.colorscheme("vim")
+end
 
 -- Built-in lightweight explorer (netrw)
 vim.g.netrw_banner = 0

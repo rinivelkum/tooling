@@ -1,7 +1,7 @@
 font-family=SF Mono
-# theme = dark:Xcode Dark,light:Xcode Light
-theme = dark:Gruvbox Material Dark,light:Gruvbox Material Light
-# theme = dark:Catppuccin Frappe,light: Catppuccin Latte
+# theme = Xcode Light
+theme = Gruvbox Material Light
+# theme = Catppuccin Latte
 font-size=14
 font-thicken=true
 font-thicken-strength=64

@@ -1,10 +1,15 @@
 # vi: ft=dosini
 # Gruvbox Material Light colors for pgcli.
 #
-# Selected by `PGCLIRC`, which `_theme_light` exports in .zshrc. PGCLIRC replaces
-# ~/.config/pgcli/config outright — pgcli layers this file over its own packaged
-# pgclirc, not over the user config — so only the theme keys belong here and
-# every other setting keeps its pgcli default.
+# Selected by `PGCLIRC`, which `_theme_gruvbox` exports in .zshrc. PGCLIRC
+# replaces ~/.config/pgcli/config as the user config — pgcli layers this file
+# over its own packaged pgclirc, not over the other file — so only the theme keys
+# belong here and every other setting keeps its pgcli default. pgcli_config, the
+# ANSI variant, is partial for the same reason.
+#
+# pgcli writes a saved named query (\ns, \ne) back into whichever file it read,
+# and has no include mechanism, so one saved under `theme gruvbox` lands here and
+# is invisible under `theme ansi`. Copy it across by hand if you want it in both.
 #
 # Hexes are shared with FZF_DEFAULT_OPTS in .zshrc: bg+ #ebdbb2, border #d5c4a1,
 # fg #654735, fg+ #4f3829, prompt #b47109, hl #45707a, pointer #c14a4a.
