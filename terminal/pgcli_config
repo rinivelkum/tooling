@@ -2,9 +2,9 @@
 # ANSI-named colors for pgcli, so it renders in whatever the terminal profile
 # defines.
 #
-# This is the user config pgcli reads by default, with PGCLIRC unset. pgcli
-# merges it over its own packaged pgclirc, so only theme keys belong here and
-# every other setting keeps its pgcli default.
+# This is the user config pgcli reads by default. pgcli merges it over its own
+# packaged pgclirc, so only theme keys belong here and every other setting keeps
+# its pgcli default.
 #
 # pgcli rewrites its user config in place when you save a named query (\ns, \ne),
 # and this file is a symlink into the repo, so that shows up as a diff here.

@@ -4,14 +4,6 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 
-# This used to take a [terminal|ghostty] variant. Reject arguments rather than
-# ignore them, so `setup.sh ghostty` from muscle memory does not look like it
-# configured something.
-if [[ $# -gt 0 ]]; then
-  echo "usage: ${0##*/}" >&2
-  exit 2
-fi
-
 link() {
   local source="$1"
   local target="$2"
@@ -31,17 +23,6 @@ link() {
 
   echo "  [link]   $target -> $source"
   ln -s "$source" "$target"
-}
-
-# Drops a link this script used to create once its target is gone from the repo.
-# Restricted to dangling symlinks, so a real file at that path is never touched.
-unlink_stale() {
-  local target="$1"
-
-  if [[ -L "$target" ]] && [[ ! -e "$target" ]]; then
-    echo "  [rm]     $target -> $(readlink "$target") (gone)"
-    rm "$target"
-  fi
 }
 
 brew_install() {
@@ -65,19 +46,6 @@ echo "terminal:"
 link "$REPO_ROOT/terminal/.zshrc" "$HOME/.zshrc"
 link "$REPO_ROOT/terminal/pgcli_config" "$HOME/.config/pgcli/config"
 link "$REPO_ROOT/terminal/lazygit_config.yml" "$HOME/Library/Application Support/lazygit/config.yml"
-# Left behind by earlier runs: the ANSI palette is the only theme now, so the
-# Ghostty config and the dark/light/gruvbox variants are all gone from the repo.
-unlink_stale "$HOME/.config/ghostty/config"
-unlink_stale "$HOME/.config/ripgrep/ripgreprc-dark"
-unlink_stale "$HOME/.config/ripgrep/ripgreprc-light"
-unlink_stale "$HOME/.config/ripgrep/ripgreprc-gruvbox"
-unlink_stale "$HOME/.config/pgcli/config-dark"
-unlink_stale "$HOME/.config/pgcli/config-light"
-unlink_stale "$HOME/.config/pgcli/config-gruvbox"
-# Recorded which terminal the machine was set up for. Nothing reads it now, and
-# it was the only thing in that directory.
-rm -f "$HOME/.config/tooling/variant"
-rmdir "$HOME/.config/tooling" 2>/dev/null || true
 echo
 
 echo "containers:"
@@ -134,17 +102,10 @@ if command -v brew &>/dev/null; then
   # delta's own detection queries the terminal, which races with the pager it is
   # attached to. Light is the only supported theme, so state it outright. It
   # picks every diff color from here: pale red and green backgrounds, which read
-  # better than the full-strength ANSI slots a profile maps.
+  # better than the full-strength ANSI slots a profile maps. Syntax highlighting
+  # inside a diff still follows the profile, since delta takes $BAT_THEME as its
+  # --syntax-theme default and .zshrc exports it as ansi.
   git config --global delta.light true
-  # Written by earlier runs: diff and line-number colors forced onto the ANSI
-  # palette. Only dropped when it still holds the value this script wrote, so a
-  # feature list edited by hand survives. Syntax highlighting inside diffs is
-  # untouched either way — delta takes $BAT_THEME as its --syntax-theme default,
-  # and .zshrc exports it as ansi.
-  if [[ "$(git config --global --get delta.features || true)" == "ansi-palette" ]]; then
-    git config --global --unset delta.features
-  fi
-  git config --global --remove-section delta.ansi-palette 2>/dev/null || true
   git config --global merge.conflictStyle "zdiff3"
   echo "  [done]   delta wired as git pager"
   echo
