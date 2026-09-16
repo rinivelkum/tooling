@@ -36,17 +36,6 @@ vim.g.loaded_python3_provider = 0
 opt.grepprg = ignore.grepprg()
 opt.grepformat = "%f:%l:%c:%m"
 
--- Theme — the terminal profile's own colors. With termguicolors off, highlights
--- fall back to their cterm values, most of which are ANSI 0-15 that the terminal
--- maps from its profile colors. The `vim` scheme is the only built-in that
--- leaves Normal undefined, so the buffer keeps the terminal's background instead
--- of painting its own.
--- Setting `background` explicitly drops Nvim's OSC 11 query, which is the point:
--- only light profiles are supported, so there is nothing to detect.
-opt.termguicolors = false
-vim.o.background = "light"
-vim.cmd.colorscheme("vim")
-
 -- Built-in lightweight explorer (netrw)
 vim.g.netrw_banner = 0
 vim.g.netrw_keepdir = 0
