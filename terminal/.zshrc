@@ -558,88 +558,28 @@ if command -v gh &>/dev/null; then
 fi
 
 # ---------------------------------------------------------------------------
-#  Theme — light only, either the profile's ANSI colors or Gruvbox
+#  Theme — the terminal profile's own ANSI colors
 # ---------------------------------------------------------------------------
-# `theme ansi` (the startup default outside Ghostty) puts every tool on the 16
-# ANSI colors the terminal profile defines, so switching Terminal.app profiles
-# restyles these tools with it. It does not reach everything: nvim's
-# `background` and delta's `light` are pinned to light in
+# Every tool here runs on the 16 ANSI colors the terminal profile defines, so
+# switching Terminal.app profiles restyles them with it. Two settings sit
+# outside that: nvim's `background` and delta's `light` are pinned to light in
 # nvim/lua/config/options.lua and setup.sh, so a dark profile would leave those
-# two wrong. It also needs the profile to keep ANSI 0 dark and 7/15 light, which
-# is why _theme_ansi refuses to run under Ghostty.
-# `theme gruvbox` forces the Gruvbox Material Light palette Ghostty renders and
-# ignores the profile.
+# wrong. The profile also has to keep ANSI 0 dark and 7/15 light, since every
+# surface here picks slot 0 for text and 7/15 for backgrounds, and an inverted
+# palette would render pgcli's popup and 17 nvim groups (Pmenu, PmenuSel,
+# Visual, TabLine, ...) the wrong way round.
 #
-# Both functions export $THEME, which is what nvim reads. Tools that take an
-# env var pick the change up on their next run, so only nvim instances already
-# open stay on the old palette.
+# rg and pgcli are absent: rg has no default config file and its built-in colors
+# are ANSI-named already (bold red match, magenta path, green line), and pgcli
+# reads ~/.config/pgcli/config, the ANSI file setup.sh links.
 
-_theme_ansi() {
-  # Every surface below picks slot 0 for text and 7/15 for backgrounds, so the
-  # profile has to keep 0 dark and 7/15 light. Ghostty's Gruvbox Material Light
-  # sets 0=#fbf1c7 and 7/15=#654735/#4f3829, which is the reverse, and pgcli's
-  # popup plus 17 nvim groups (Pmenu, PmenuSel, Visual, TabLine, ...) would
-  # render inverted. Refuse rather than apply it.
-  if [[ "${TERM_PROGRAM:-}" == ghostty ]]; then
-    echo "theme: ansi needs a profile with ANSI 0 dark and 7/15 light;" >&2
-    echo "       Ghostty's Gruvbox Material Light inverts them. Use: theme gruvbox" >&2
-    return 1
-  fi
-  # nvim reads this at startup (nvim/lua/config/options.lua). It is the only
-  # tool here that cannot be restyled in place, so a running nvim keeps whatever
-  # was set when it launched.
-  export THEME=ansi
-  # fzf's own dark/light presets hardcode 256-color indices that ignore the
-  # profile. --color=16 keeps it on the ANSI 16.
-  export FZF_DEFAULT_OPTS="--color=16"
-  export BAT_THEME="ansi"
-  # rg has no default config file at all, so unsetting this drops it to its
-  # built-in colors. Those are ANSI-named already (bold red match, magenta path,
-  # green line), so they follow the profile on their own. pgcli does have a
-  # default, ~/.config/pgcli/config, which is the ANSI file setup.sh links.
-  unset RIPGREP_CONFIG_PATH
-  unset PGCLIRC
-  # delta's diff colors. The feature itself lives in ~/.gitconfig (setup.sh
-  # writes it); the leading + adds it to whatever delta.features already lists
-  # rather than replacing them. delta reads $BAT_THEME for --syntax-theme on its
-  # own, so the highlighting inside diffs needs nothing here.
-  export DELTA_FEATURES=+ansi-palette
-}
-
-_theme_gruvbox() {
-  export THEME=gruvbox
-  export FZF_DEFAULT_OPTS="
-    --color=bg+:#ebdbb2,bg:#fbf1c7,spinner:#6c782e,hl:#45707a
-    --color=fg:#654735,header:#45707a,info:#b47109,pointer:#c14a4a
-    --color=marker:#c14a4a,fg+:#4f3829,prompt:#b47109,hl+:#45707a
-    --color=border:#d5c4a1
-  "
-  export BAT_THEME="gruvbox-light"
-  export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/ripgreprc-gruvbox"
-  # PGCLIRC replaces ~/.config/pgcli/config as the user config (pgcli merges
-  # whichever file it names over its own packaged pgclirc, never over the other
-  # file), so config-gruvbox holds only theme keys.
-  export PGCLIRC="$HOME/.config/pgcli/config-gruvbox"
-  # Back to delta's own light tints, which are pale backgrounds the ANSI palette
-  # has no equivalent for.
-  unset DELTA_FEATURES
-}
-
-theme() {
-  case "${1:-ansi}" in
-    ansi)    _theme_ansi ;;
-    gruvbox) _theme_gruvbox ;;
-    *)       echo "usage: theme [ansi|gruvbox]" >&2; return 1 ;;
-  esac
-}
-
-# Ghostty carries its own Gruvbox Material Light palette, so there the tools
-# only have to match it. Every other terminal drives them from the profile's
-# own ANSI colors instead.
-case "${TERM_PROGRAM:-}" in
-  ghostty) theme gruvbox ;;
-  *)       theme ansi ;;
-esac
+# fzf's own dark/light presets hardcode 256-color indices that ignore the
+# profile. --color=16 keeps it on the ANSI 16.
+export FZF_DEFAULT_OPTS="--color=16"
+# delta takes this as the default for --syntax-theme, so it also colors the code
+# inside a diff. delta's own light defaults own the minus/plus backgrounds, which
+# the profile does not reach.
+export BAT_THEME="ansi"
 
 # ---------------------------------------------------------------------------
 #  FZF Integration (if installed) — supercharges git workflows

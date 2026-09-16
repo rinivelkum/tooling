@@ -4,35 +4,13 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 
-# Which terminal this machine is set up for. Only decides whether the Ghostty
-# config gets linked. .zshrc and nvim pick their palette per shell, so both
-# terminals stay usable whichever variant was installed.
-VARIANT_FILE="$HOME/.config/tooling/variant"
-
-# An argument switches the machine over, and is the only thing that lets this
-# script remove a link an earlier run made. Without one the last recorded choice
-# wins, so re-running from the other terminal (or over ssh, where TERM_PROGRAM is
-# unset) cannot undo the setup. TERM_PROGRAM only decides the very first run.
-if [[ -n "${1:-}" ]]; then
-  VARIANT="$1"
-  VARIANT_EXPLICIT=1
-else
-  VARIANT_EXPLICIT=0
-  if [[ -r "$VARIANT_FILE" ]]; then
-    VARIANT="$(<"$VARIANT_FILE")"
-  elif [[ "${TERM_PROGRAM:-}" == ghostty ]]; then
-    VARIANT=ghostty
-  else
-    VARIANT=terminal
-  fi
+# This used to take a [terminal|ghostty] variant. Reject arguments rather than
+# ignore them, so `setup.sh ghostty` from muscle memory does not look like it
+# configured something.
+if [[ $# -gt 0 ]]; then
+  echo "usage: ${0##*/}" >&2
+  exit 2
 fi
-case "$VARIANT" in
-  terminal | ghostty) ;;
-  *)
-    echo "usage: ${0##*/} [terminal|ghostty]" >&2
-    exit 2
-    ;;
-esac
 
 link() {
   local source="$1"
@@ -66,19 +44,6 @@ unlink_stale() {
   fi
 }
 
-# Drops a link this script created once the chosen variant no longer wants it.
-# Only reached on an explicit variant argument, and restricted to links pointing
-# into the repo, so neither a bare re-run nor a hand-written config at that path
-# loses anything.
-unlink_ours() {
-  local target="$1"
-
-  if [[ -L "$target" ]] && [[ "$(readlink "$target")" == "$REPO_ROOT"/* ]]; then
-    echo "  [rm]     $target -> $(readlink "$target")"
-    rm "$target"
-  fi
-}
-
 brew_install() {
   local pkg="$1"
   if brew list --formula "$pkg" &>/dev/null; then
@@ -89,9 +54,7 @@ brew_install() {
   fi
 }
 
-echo "Linking configs from $REPO_ROOT ($VARIANT variant)"
-mkdir -p "$(dirname "$VARIANT_FILE")"
-printf '%s\n' "$VARIANT" > "$VARIANT_FILE"
+echo "Linking configs from $REPO_ROOT"
 echo
 
 echo "nvim:"
@@ -100,24 +63,21 @@ echo
 
 echo "terminal:"
 link "$REPO_ROOT/terminal/.zshrc" "$HOME/.zshrc"
-if [[ "$VARIANT" == ghostty ]]; then
-  link "$REPO_ROOT/terminal/ghostty_config" "$HOME/.config/ghostty/config"
-elif (( VARIANT_EXPLICIT )); then
-  echo "  [skip]   ghostty config"
-  unlink_ours "$HOME/.config/ghostty/config"
-else
-  echo "  [skip]   ghostty config (run with 'ghostty' to link it)"
-fi
-link "$REPO_ROOT/terminal/ripgreprc-gruvbox" "$HOME/.config/ripgrep/ripgreprc-gruvbox"
 link "$REPO_ROOT/terminal/pgcli_config" "$HOME/.config/pgcli/config"
-link "$REPO_ROOT/terminal/pgcli_config-gruvbox" "$HOME/.config/pgcli/config-gruvbox"
 link "$REPO_ROOT/terminal/lazygit_config.yml" "$HOME/Library/Application Support/lazygit/config.yml"
-# Left behind by earlier runs: dark is gone as a theme, and the -light pair was
-# renamed to -gruvbox once ANSI became the other light variant.
+# Left behind by earlier runs: the ANSI palette is the only theme now, so the
+# Ghostty config and the dark/light/gruvbox variants are all gone from the repo.
+unlink_stale "$HOME/.config/ghostty/config"
 unlink_stale "$HOME/.config/ripgrep/ripgreprc-dark"
-unlink_stale "$HOME/.config/pgcli/config-dark"
 unlink_stale "$HOME/.config/ripgrep/ripgreprc-light"
+unlink_stale "$HOME/.config/ripgrep/ripgreprc-gruvbox"
+unlink_stale "$HOME/.config/pgcli/config-dark"
 unlink_stale "$HOME/.config/pgcli/config-light"
+unlink_stale "$HOME/.config/pgcli/config-gruvbox"
+# Recorded which terminal the machine was set up for. Nothing reads it now, and
+# it was the only thing in that directory.
+rm -f "$HOME/.config/tooling/variant"
+rmdir "$HOME/.config/tooling" 2>/dev/null || true
 echo
 
 echo "containers:"
@@ -172,31 +132,19 @@ if command -v brew &>/dev/null; then
   git config --global delta.navigate true
   git config --global delta.line-numbers true
   # delta's own detection queries the terminal, which races with the pager it is
-  # attached to. Light is the only supported theme, so state it outright. This
-  # still backs everything the ansi-palette feature below leaves alone, blame and
-  # merge-conflict styles among them.
+  # attached to. Light is the only supported theme, so state it outright. It
+  # picks every diff color from here: pale red and green backgrounds, which read
+  # better than the full-strength ANSI slots a profile maps.
   git config --global delta.light true
-  # Diff colors on the terminal's own ANSI palette. Only applies when
-  # DELTA_FEATURES names this feature, which `theme ansi` in .zshrc does and
-  # `theme gruvbox` does not, so Ghostty keeps delta's pale light tints.
-  #
-  # Syntax highlighting is absent here on purpose: delta takes $BAT_THEME as the
-  # default for --syntax-theme, so it already follows whichever palette `theme`
-  # selected.
-  #
-  # `syntax` keeps the highlighted foreground and colors only the background. The
-  # ANSI slots are full-strength text colors rather than the pale tints delta
-  # picks for a light terminal, so changed lines read as solid red and green
-  # bands. That is the cost of letting the profile own them.
-  git config --global delta.ansi-palette.minus-style "syntax red"
-  git config --global delta.ansi-palette.plus-style "syntax green"
-  git config --global delta.ansi-palette.minus-emph-style "syntax brightred"
-  git config --global delta.ansi-palette.plus-emph-style "syntax brightgreen"
-  # Without these three the line-number columns stay on delta's own 256-cube
-  # indices (88, 28) and a fixed #444444, none of which the profile maps.
-  git config --global delta.ansi-palette.line-numbers-minus-style "red"
-  git config --global delta.ansi-palette.line-numbers-plus-style "green"
-  git config --global delta.ansi-palette.line-numbers-zero-style "brightblack"
+  # Written by earlier runs: diff and line-number colors forced onto the ANSI
+  # palette. Only dropped when it still holds the value this script wrote, so a
+  # feature list edited by hand survives. Syntax highlighting inside diffs is
+  # untouched either way — delta takes $BAT_THEME as its --syntax-theme default,
+  # and .zshrc exports it as ansi.
+  if [[ "$(git config --global --get delta.features || true)" == "ansi-palette" ]]; then
+    git config --global --unset delta.features
+  fi
+  git config --global --remove-section delta.ansi-palette 2>/dev/null || true
   git config --global merge.conflictStyle "zdiff3"
   echo "  [done]   delta wired as git pager"
   echo
