@@ -54,6 +54,16 @@ return {
       -- rooted wherever nvim happened to be launched.
       vim.lsp.config("tsc", {
         root_dir = function(bufnr, on_dir)
+          -- Definitions can open TypeScript's bundled declarations in Mason.
+          -- Those files should not start a separate language server.
+          local filename = vim.api.nvim_buf_get_name(bufnr)
+          filename = vim.fs.normalize(vim.uv.fs_realpath(filename) or filename)
+          local mason_dir = vim.fn.stdpath("data") .. "/mason"
+          mason_dir = vim.fs.normalize(vim.uv.fs_realpath(mason_dir) or mason_dir)
+          if vim.startswith(filename, mason_dir .. "/") then
+            return
+          end
+
           local root = vim.fs.root(bufnr, {
             { "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb", "bun.lock" },
             { ".git" },
