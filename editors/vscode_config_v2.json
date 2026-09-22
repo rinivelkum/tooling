@@ -1,0 +1,20 @@
+{
+    "workbench.colorTheme": "Light 2026",
+    "workbench.startupEditor": "none",
+    "editor.fontSize": 14,
+    "editor.fontFamily": "SF Mono, Menlo, Monaco, 'Courier New', monospace",
+    "chat.disableAIFeatures": true,
+    "editor.minimap.enabled": false,
+    "editor.smoothScrolling": true,
+    "editor.cursorSmoothCaretAnimation": "on",
+    "workbench.list.smoothScrolling": true,
+    "terminal.integrated.smoothScrolling": true,
+    "editor.cursorBlinking": "smooth",
+    "workbench.activityBar.location": "hidden",
+    "editor.scrollbar.horizontalScrollbarSize": 8,
+    "editor.scrollbar.verticalScrollbarSize": 8,
+    "diffEditor.renderSideBySide": false,
+    "terminal.integrated.fontSize": 14,
+    "git.autofetch": true,
+    "git.confirmSync": false
+}
