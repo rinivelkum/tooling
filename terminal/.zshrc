@@ -13,7 +13,7 @@ typeset -gU path fpath
 # shell, and HOMEBREW_PREFIX/FPATH are exported so nested shells inherit them
 # too). Re-run it only when genuinely missing — saves ~35ms per shell.
 [[ -n $HOMEBREW_PREFIX ]] || eval "$(/opt/homebrew/bin/brew shellenv zsh)"
-export EDITOR="nvim"
+export EDITOR="code --wait"
 export VISUAL="$EDITOR"
 export PAGER="less"
 # $LESS is read by the `less` binary on EVERY invocation (git, man, etc.), so
