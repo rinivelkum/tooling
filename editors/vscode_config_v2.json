@@ -16,5 +16,7 @@
     "diffEditor.renderSideBySide": false,
     "terminal.integrated.fontSize": 14,
     "git.autofetch": true,
-    "git.confirmSync": false
+    "git.confirmSync": false,
+    "window.density.layout": "compact",
+    "editor.scrollbar.horizontal": "hidden"
 }
