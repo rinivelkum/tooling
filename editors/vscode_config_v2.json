@@ -1,9 +1,6 @@
 {
     "workbench.colorTheme": "Light 2026",
     "workbench.startupEditor": "none",
-    "window.commandCenter": false,
-    "window.title": "${activeEditorMedium}${separator}${rootName}",
-    "breadcrumbs.enabled": false,
     "editor.fontSize": 14,
     "editor.fontFamily": "SF Mono, Menlo, Monaco, 'Courier New', monospace",
     "chat.disableAIFeatures": true,
@@ -21,5 +18,9 @@
     "git.autofetch": true,
     "git.confirmSync": false,
     "window.density.layout": "compact",
-    "editor.scrollbar.horizontal": "hidden"
+    "editor.scrollbar.horizontal": "hidden",
+    "breadcrumbs.enabled": false,
+    "window.commandCenter": false,
+    "window.title": "${activeEditorMedium}${separator}${rootName}",
+    "workbench.browser.dataStorage": "ephemeral"
 }
