@@ -22,5 +22,6 @@
     "breadcrumbs.enabled": false,
     "window.commandCenter": false,
     "window.title": "${activeEditorMedium}${separator}${rootName}",
-    "workbench.browser.dataStorage": "ephemeral"
+    "workbench.browser.dataStorage": "ephemeral",
+    "window.customTitleBarVisibility": "windowed"
 }
