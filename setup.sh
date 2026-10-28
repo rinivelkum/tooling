@@ -127,4 +127,40 @@ else
   echo
 fi
 
+echo "node / nvm:"
+(
+  # Match .zshrc's lazy loader, even when XDG_CONFIG_HOME is set.
+  export NVM_DIR="$HOME/.nvm"
+  if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+    echo "  [skip]   nvm already installed"
+  else
+    # Resolve the latest published release without requiring a JSON parser.
+    nvm_release_url="$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/nvm-sh/nvm/releases/latest)"
+    nvm_version="${nvm_release_url##*/}"
+    if [[ ! "$nvm_version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      echo "  [error]  could not determine the latest nvm release" >&2
+      exit 1
+    fi
+    echo "  [nvm]    installing nvm $nvm_version"
+    mkdir -p "$NVM_DIR"
+    # .zshrc is managed here; prevent the installer from appending eager loading.
+    curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/$nvm_version/install.sh" | PROFILE=/dev/null NVM_INSTALL_VERSION="$nvm_version" bash
+  fi
+
+  # nvm is not compatible with strict shell options. Relax them only in this
+  # subshell and explicitly propagate failures back to the setup script.
+  set +eu
+  . "$NVM_DIR/nvm.sh" --no-use || exit 1
+
+  if default_version="$(nvm version default)" && [[ "$default_version" != "N/A" ]]; then
+    echo "  [skip]   default Node.js version already installed ($default_version)"
+  else
+    echo "  [nvm]    installing Node.js LTS"
+    nvm install --lts || exit 1
+    # Pin the resolved version so .zshrc can find it without loading nvm.
+    nvm alias default "$(nvm current)" || exit 1
+  fi
+)
+echo
+
 echo "Done. Restart your shell and terminal to pick up changes."
