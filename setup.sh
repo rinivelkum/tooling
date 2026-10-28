@@ -76,10 +76,23 @@ if command -v brew &>/dev/null; then
   brew_install zsh-autosuggestions
   brew_install zsh-syntax-highlighting
 
+  # Python runtime (includes pip and venv), plus uv for project dependencies
+  # and isolated CLI tools via `uv tool install` / `uvx`.
+  brew_install python
+  brew_install uv
+
   # Extras — not needed by .zshrc, just tools I want on every machine.
   brew_install go
   brew_install pgcli
   brew_install rustup
+  echo
+
+  echo "python:"
+  echo "  [done]   Python, pip, venv, and uv installed"
+  echo "  [usage]  Create a project environment: python3 -m venv .venv"
+  echo "  [usage]  Activate it: source .venv/bin/activate"
+  echo "  [usage]  Install dependencies: python -m pip install <package>"
+  echo "  [usage]  Run an isolated CLI: uvx <tool>"
   echo
 
   echo "rust toolchain:"

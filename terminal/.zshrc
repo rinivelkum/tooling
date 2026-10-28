@@ -9,10 +9,11 @@
 # accumulate duplicate entries (nvm bin, ~/.local/bin, ...).
 typeset -gU path fpath
 
-# ~/.zprofile already ran brew shellenv (every macOS terminal tab is a login
-# shell, and HOMEBREW_PREFIX/FPATH are exported so nested shells inherit them
-# too). Re-run it only when genuinely missing — saves ~35ms per shell.
-[[ -n $HOMEBREW_PREFIX ]] || eval "$(/opt/homebrew/bin/brew shellenv zsh)"
+# Reuse brew shellenv from a login profile or parent shell when available.
+# This configuration targets Apple Silicon Macs with Homebrew in /opt/homebrew.
+if [[ -z $HOMEBREW_PREFIX && -x /opt/homebrew/bin/brew ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv zsh)"
+fi
 export EDITOR="code --wait"
 export VISUAL="$EDITOR"
 export PAGER="less"
@@ -473,7 +474,8 @@ alias dl="cd ~/Downloads"
 #  Dev Shortcuts
 # ---------------------------------------------------------------------------
 alias py="python3"
-alias pip="pip3"
+# Keep pip tied to the selected interpreter, including an activated venv.
+alias pip="python3 -m pip"
 alias serve="python3 -m http.server 8000"
 alias json="python3 -m json.tool"
 alias k="kubectl"
@@ -739,6 +741,17 @@ nvm() {
 # Array form, not `export PATH="...:$PATH"` — typeset -U only dedupes
 # assignments to the path array, not ones through the tied PATH scalar.
 path=("$HOME/.local/bin" $path)
+
+# Homebrew puts unversioned python/pip commands here. Append this fallback so
+# an activated virtual environment or version manager keeps precedence.
+# Resolve the formula alias: its actual prefix is versioned (python@3.x).
+if command -v brew &>/dev/null; then
+  _python_prefix=$(brew --prefix python 2>/dev/null)
+  if [[ -n $_python_prefix && -d $_python_prefix/libexec/bin ]]; then
+    path+=("$_python_prefix/libexec/bin")
+  fi
+  unset _python_prefix
+fi
 
 # brew's rustup formula ships the cargo/rustc/rustfmt shims in its own keg and
 # no longer installs rustup-init, so ~/.cargo/bin is never created.
